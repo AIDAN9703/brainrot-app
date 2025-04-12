@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Replace the following with your app's Firebase project configuration
 // This info can be found in your Firebase console under Project Settings
 const firebaseConfig = {
-    apiKey: "AIzaSyCDyv-1RVY6sLFHFGIxoioWtRDFELTfWSE",
+    apiKey: process.env.GOOGLE_API_KEY,
     authDomain: "brainrot-dictionary.firebaseapp.com",
     projectId: "brainrot-dictionary",
     storageBucket: "brainrot-dictionary.firebasestorage.app",
