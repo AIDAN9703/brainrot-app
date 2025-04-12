@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Base styles */
+:root {
+  --background-color: #084c8b;
+}
+
+/* Apply the background color to the root elements */
+body, html, #root, .app {
+  @apply bg-background;
+}
+
+/* For React Native specifically */
+@layer base {
+  .app-container {
+    @apply bg-background flex-1;
+  }
+}
