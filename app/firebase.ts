@@ -1,13 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Replace the following with your app's Firebase project configuration
 // This info can be found in your Firebase console under Project Settings
 const firebaseConfig = {
-    apiKey: process.env.GOOGLE_API_KEY,
+    apiKey: "AIzaSyCDyv-1RVY6sLFHFGIxoioWtRDFELTfWSE",
     authDomain: "brainrot-dictionary.firebaseapp.com",
     projectId: "brainrot-dictionary",
     storageBucket: "brainrot-dictionary.firebasestorage.app",
@@ -19,8 +19,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth
-const auth = getAuth(app);
+// Initialize Firebase Auth with AsyncStorage persistence
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 // Initialize Firestore
 const db = getFirestore(app);

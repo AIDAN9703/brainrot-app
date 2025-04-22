@@ -2,9 +2,17 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import '../global.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, Platform, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+// Safe area wrapper component for consistent padding
+const SafeAreaWrapper = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <View style={styles.safeArea}>
+      {children}
+    </View>
+  );
+};
 
 // Function to protect routes
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -44,26 +52,40 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <AuthGuard>
-        <View style={{ flex: 1, backgroundColor: '#084c8b' }}>
+        <View style={{ flex: 1, backgroundColor: '#121212' }}>
           <StatusBar style="light" />
+          <SafeAreaWrapper>
           <Stack 
             screenOptions={{ 
               headerShadowVisible: false,
-              headerStyle: { backgroundColor: '#084c8b' }, 
-              contentStyle: { backgroundColor: '#084c8b' }, 
-              headerTitleStyle: { fontFamily: 'Poppins-Medium', fontSize: 18 },
+                headerStyle: { backgroundColor: '#121212' }, 
+                contentStyle: { backgroundColor: '#121212' }, 
+                headerTitleStyle: { fontFamily: 'serif', fontSize: 20 },
               headerTitleAlign: 'center',
               animation: 'fade',
-              headerTintColor: '#fff',
+                headerTintColor: '#FF3E8A',
             }} 
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false, headerTitle: 'BRAINROT' }} />
             <Stack.Screen name="word/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', headerTitle: 'Edit Profile' }} />
+              <Stack.Screen name="modal" options={{ 
+                presentation: 'modal', 
+                headerTitle: 'Edit Profile',
+                headerStyle: { backgroundColor: '#121212' },
+                contentStyle: { backgroundColor: '#121212' }
+              }} />
           </Stack>
+          </SafeAreaWrapper>
         </View>
       </AuthGuard>
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30, // More padding on iOS for the notch
+  }
+});

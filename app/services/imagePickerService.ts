@@ -158,4 +158,16 @@ export const updateProfilePhoto = async (userId: string, photoSource: 'gallery' 
     console.error('Error updating profile photo:', error);
     return false;
   }
-}; 
+};
+
+// Default export to satisfy Expo Router
+const imagePickerService = {
+  requestMediaLibraryPermissions,
+  requestCameraPermissions,
+  pickImageFromGallery,
+  takePhoto,
+  uploadImageAsync,
+  updateProfilePhoto
+};
+
+export default imagePickerService; 

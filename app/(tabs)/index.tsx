@@ -1,307 +1,230 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Animated, Image, StatusBar, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getAllWords, searchWords, getTrendingWords } from '../services/wordService';
-import { addToFavorites, removeFromFavorites, getFavoriteWords } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
-import { Word } from '../types';
+import AlgoliaSearch from '../components/AlgoliaSearch';
 
+// Screen constants - reduced header height to create more space
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 100 : 90;
+const { width } = Dimensions.get('window');
 
 export default function DictionaryScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'trending' | 'favorites'>('trending');
-  const [words, setWords] = useState<Word[]>([]);
-  const [favoriteWords, setFavoriteWords] = useState<Word[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
   const { user } = useAuth();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
+  const grimaceSize = useRef(new Animated.Value(0.85)).current;
   
-  // Load words from Firebase
+  // Animation values
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT],
+    extrapolate: 'clamp'
+  });
+  
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp'
+  });
+  
+  // Tab indicator animation
   useEffect(() => {
-    const loadWords = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Get trending words
-        const trendingWordsData = await getTrendingWords(10);
-        setWords(trendingWordsData);
-        
-        // Load favorite words if user is logged in
-        if (user && user.id) {
-          const userFavoriteIds = await getFavoriteWords(user.id);
-          const allWords = await getAllWords();
-          const userFavorites = allWords.filter(word => 
-            userFavoriteIds.includes(word.id as string)
-          );
-          setFavoriteWords(userFavorites);
-        }
-      } catch (err) {
-        console.error('Error loading words:', err);
-        setError('Failed to load words. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadWords();
-  }, [user]);
+    Animated.timing(tabIndicatorPosition, {
+      toValue: activeTab === 'trending' ? 0 : width / 2 - 20,
+      duration: 250,
+      useNativeDriver: true
+    }).start();
+  }, [activeTab, width]);
   
-  // Handle search
-  useEffect(() => {
-    const handleSearch = async () => {
-      if (searchQuery.trim() === '') return;
+  return (
+    <View className="flex-1 bg-brainrot-bg">
+      <StatusBar barStyle="light-content" />
       
-      try {
-        setIsLoading(true);
-        const results = await searchWords(searchQuery);
-        setWords(results);
-      } catch (err) {
-        console.error('Error searching words:', err);
-        setError('Search failed. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      if (searchQuery.trim()) {
-        handleSearch();
-      }
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-  
-  // Toggle favorite
-  const toggleFavorite = async (wordId: string) => {
-    if (!user || !user.id) {
-      // Handle not logged in state
-      return;
-    }
-    
-    try {
-      const isFavorite = favoriteWords.some(word => word.id === wordId);
-      
-      if (isFavorite) {
-        await removeFromFavorites(user.id, wordId);
-        setFavoriteWords(favoriteWords.filter(word => word.id !== wordId));
-      } else {
-        await addToFavorites(user.id, wordId);
-        const wordToAdd = words.find(word => word.id === wordId);
-        if (wordToAdd) {
-          setFavoriteWords([...favoriteWords, wordToAdd]);
-        }
-      }
-    } catch (err) {
-      console.error('Error toggling favorite:', err);
-    }
-  };
-  
-  // Get active words based on tab
-  const getActiveWords = () => {
-    return activeTab === 'trending' ? words : favoriteWords;
-  };
-  
-  // Check if a word is favorited
-  const isWordFavorite = (wordId: string) => {
-    return favoriteWords.some(word => word.id === wordId);
-  };
-
-  const renderWordCard = ({ item }: { item: Word }) => (
-    <Link href={`/word/${item.id}`} asChild>
-      <TouchableOpacity 
-        className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100"
-        style={{ 
-          elevation: 1,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
+      {/* Animated header - moved up and reduced in height */}
+      <Animated.View 
+        className="absolute top-0 left-0 right-0 z-10 px-4 overflow-visible"
+        style={{
+          height: HEADER_HEIGHT,
+          paddingTop: Platform.OS === 'ios' ? 30 : 20, // Reduced padding to move up
+          opacity: headerOpacity,
+          transform: [{ translateY: headerTranslateY }]
         }}
       >
-        <View className="p-5">
-          <View className="flex-row justify-between items-center">
-            <Text className="text-xl font-bold text-blue-primary">{item.word}</Text>
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation();
-                if (item.id) toggleFavorite(item.id);
-              }}
-            >
-              <Ionicons 
-                name={isWordFavorite(item.id as string) ? "heart" : "heart-outline"} 
-                size={20} 
-                color="#f43f5e" 
-              />
-            </TouchableOpacity>
-          </View>
-          <Text className="text-gray-700 mt-2" numberOfLines={2}>{item.definition}</Text>
-          <View className="flex-row justify-end mt-3">
-            <View className="bg-mint-50 rounded-full p-2">
-              <Ionicons name="arrow-forward" size={16} color="#16a34a" />
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Link>
-  );
-
-  return (
-    <View className="flex-1 pt-24" style={{ backgroundColor: '#084c8b' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#084c8b" />
-      
-      {/* Fixed Header */}
-      <View className="px-4 pb-2">
-        <Text className="text-gray-200">Discover the latest brainrot words</Text>
-      </View>
-
-      {/* Search Bar */}
-      <View className="px-4 pb-4">
-        <View 
-          className="flex-row items-center bg-white rounded-full px-4 py-2 border border-gray-100"
-          style={{ 
-            elevation: 1,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
+        {/* Grimace peeking image - repositioned higher */}
+        <Animated.Image 
+          source={require('../../assets/images/grimace.png')} 
+          className="absolute w-28 h-28"
+          style={{
+            right: -5,
+            top: Platform.OS === 'ios' ? 15 : 5, // Moved up
+            transform: [
+              { rotate: '15deg' },
+              { scale: grimaceSize }
+            ],
+            zIndex: -1,
+            opacity: 0.85
           }}
-        >
-          <Ionicons name="search" size={20} color="#9ca3af" />
-          <TextInput
-            className="flex-1 ml-2 text-base"
-            placeholder="Search brainrot words..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Mini Tabs */}
-      <View className="px-4 mb-4">
-        <View 
-          className="flex-row bg-white rounded-full p-1 border border-gray-100"
-          style={{ 
-            elevation: 1,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-          }}
-        >
-          <TouchableOpacity 
-            className={`flex-1 py-2 px-4 rounded-full ${activeTab === 'trending' ? 'bg-blue-primary' : 'bg-transparent'}`}
-            onPress={() => setActiveTab('trending')}
+          resizeMode="contain"
+        />
+        
+        {/* Title moved up and condensed */}
+        <View className="mt-1"> 
+          <Text 
+            className="text-2xl font-bold text-brainrot-pink font-serif tracking-wider"
+            style={{ 
+              textShadowColor: 'rgba(0, 0, 0, 0.75)',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2
+            }}
           >
-            <Text className={`text-center font-medium ${activeTab === 'trending' ? 'text-white' : 'text-gray-700'}`}>
+            BRAINROT DICTIONARY
+          </Text>
+          <Text 
+            className="text-sm text-white/75 font-serif italic"
+            style={{ 
+              textShadowColor: 'rgba(0, 0, 0, 0.5)',
+              textShadowOffset: { width: 0.5, height: 0.5 },
+              textShadowRadius: 1
+            }}
+          >
+            Dictionary of Internet Slang
+          </Text>
+        </View>
+      </Animated.View>
+      
+      {/* Tabs moved up to create more space */}
+      <View className="z-5 px-4" style={{ paddingTop: HEADER_HEIGHT + 4 }}>
+        <View className="flex-row bg-black/30 rounded-xl p-1 border border-brainrot-purple/30 overflow-visible">
+          {/* Animated tab indicator */}
+          <Animated.View 
+            className="absolute h-9 rounded-lg bg-brainrot-purple/70"
+            style={{
+              width: width / 2 - 20, // Half width minus padding
+              transform: [{ translateX: tabIndicatorPosition }],
+              top: 4,
+              zIndex: 0
+            }}
+          />
+          
+          <TouchableOpacity 
+            className="flex-1 flex-row items-center justify-center py-2 rounded-lg z-10"
+            onPress={() => setActiveTab('trending')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={activeTab === 'trending' ? "flame" : "flame-outline"} 
+              size={20} 
+              color={activeTab === 'trending' ? "#fff" : "#FF9B4F"} 
+            />
+            <Text className={`ml-1.5 text-sm font-bold font-serif ${activeTab === 'trending' ? 'text-white' : 'text-brainrot-purple'}`}>
               Trending
             </Text>
           </TouchableOpacity>
+          
           <TouchableOpacity 
-            className={`flex-1 py-2 px-4 rounded-full ${activeTab === 'favorites' ? 'bg-mint-500' : 'bg-transparent'}`}
+            className="flex-1 flex-row items-center justify-center py-2 rounded-lg z-10"
             onPress={() => setActiveTab('favorites')}
+            activeOpacity={0.7}
           >
-            <Text className={`text-center font-medium ${activeTab === 'favorites' ? 'text-white' : 'text-gray-700'}`}>
-              Favorites {user ? `(${favoriteWords.length})` : ''}
+            <Ionicons 
+              name={activeTab === 'favorites' ? "heart" : "heart-outline"} 
+              size={20} 
+              color={activeTab === 'favorites' ? "#fff" : "#FF3E8A"} 
+            />
+            <Text className={`ml-1.5 text-sm font-bold font-serif ${activeTab === 'favorites' ? 'text-white' : 'text-brainrot-purple'}`}>
+              Favorites
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      <ScrollView className="flex-1">
-        {isLoading ? (
-          <View className="flex-1 justify-center items-center py-8">
-            <ActivityIndicator size="large" color="#10b981" />
-            <Text className="text-gray-500 mt-4">Loading words...</Text>
-          </View>
-        ) : error ? (
-          <View className="flex-1 justify-center items-center py-8">
-            <Ionicons name="alert-circle-outline" size={48} color="#f43f5e" />
-            <Text className="text-gray-500 mt-4">{error}</Text>
-          </View>
+      
+      {/* Main content - now has more room since header is smaller */}
+      <View className="flex-1 z-1 pt-2">
+        {activeTab === 'trending' ? (
+          <AlgoliaSearch />
         ) : (
-          <>
-            {/* Word of the Day */}
-            {!searchQuery && (
-              <View className="px-4 py-2 mb-4">
-                <Text className="text-base font-medium mb-3 text-white">Word of the Day</Text>
-                <View 
-                  className="bg-white p-4 rounded-xl border border-gray-100"
-                  style={{ 
-                    elevation: 1,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                  }}
-                >
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-xl font-bold text-pink-primary">rizz</Text>
-                    <TouchableOpacity onPress={() => toggleFavorite('1')}>
-                      <Ionicons 
-                        name={isWordFavorite('1') ? "heart" : "heart-outline"} 
-                        size={20} 
-                        color="#f43f5e" 
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  <Text className=" text-pink-primary mt-2">Charisma or the ability to attract a romantic partner</Text>
-                  <Text className="text-pink-primary text-xs mt-3">Example: "He has so much rizz, he got her number in five minutes."</Text>
-                  <View className="flex-row justify-end mt-3">
-                    <Link href="/word/1" asChild>
-                      <TouchableOpacity className=" bg-blue-primary px-3 py-1 rounded-full">
-                        <Text className="text-white text-xs font-medium">Learn More</Text>
-                      </TouchableOpacity>
-                    </Link>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Words List */}
-            <View className="px-4 py-2 pb-20">
-              <Text className="text-base font-medium mb-3 text-white">
-                {searchQuery 
-                  ? 'Search Results' 
-                  : activeTab === 'trending' 
-                    ? 'Trending Words' 
-                    : 'Your Favorites'}
-              </Text>
-              
-              {getActiveWords().length > 0 ? (
-                getActiveWords().map(item => (
-                  <View key={item.id} className="mb-3">
-                    {renderWordCard({ item })}
-                  </View>
-                ))
-              ) : (
-                <View className="py-8 items-center">
-                  {activeTab === 'favorites' ? (
-                    <>
-                      <Ionicons name="heart-outline" size={48} color="#dcfce7" />
-                      <Text className="text-gray-500 mt-2">No favorite words yet</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="search-outline" size={48} color="#dcfce7" />
-                      <Text className="text-gray-500 mt-2">No words found</Text>
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
-          </>
+          <FavoritesContent />
         )}
-      </ScrollView>
+      </View>
+      
+      {/* Floating action button with subtle highlight */}
+      <Link href="/word/create" asChild>
+        <TouchableOpacity 
+          className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-brainrot-purple items-center justify-center"
+          style={{
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4.65,
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={30} color="#fff" />
+          <View className="absolute w-full h-full rounded-full bg-white/10" />
+        </TouchableOpacity>
+      </Link>
+    </View>
+  );
+}
+
+// Favorites Content Component
+function FavoritesContent() {
+  const { user } = useAuth();
+  
+  // If not logged in
+  if (!user) {
+    return (
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="absolute w-40 h-40 rounded-full bg-brainrot-purple/10 top-10 right-0" />
+        <View className="absolute w-32 h-32 rounded-full bg-brainrot-pink/10 bottom-10 left-0" />
+        
+        <Ionicons name="heart-outline" size={64} color="#FF3E8A" style={{ opacity: 0.7 }} />
+        <Text className="mt-4 text-xl font-bold text-white font-serif">Sign in to save favorites</Text>
+        <Text className="mt-2 text-base text-white/70 text-center font-serif">Keep track of your favorite slang words</Text>
+        <Link href="/login" asChild>
+          <TouchableOpacity 
+            className="mt-6 px-8 py-3 rounded-2xl bg-brainrot-pink"
+            style={{
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 3.84,
+            }}
+            activeOpacity={0.8}
+          >
+            <Text className="text-base font-semibold text-white font-serif">Sign In</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
+    );
+  }
+  
+  // No favorites yet
+  if (!user.favoriteWords || user.favoriteWords.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="absolute w-40 h-40 rounded-full bg-brainrot-purple/10 top-10 right-0" />
+        <View className="absolute w-32 h-32 rounded-full bg-brainrot-pink/10 bottom-10 left-0" />
+        
+        <Ionicons name="heart-outline" size={64} color="#FF3E8A" style={{ opacity: 0.7 }} />
+        <Text className="mt-4 text-xl font-bold text-white font-serif">No favorites yet</Text>
+        <Text className="mt-2 text-base text-white/70 text-center font-serif">Add words to your favorites list</Text>
+      </View>
+    );
+  }
+  
+  // Show favorite words (simplified for now)
+  return (
+    <View className="flex-1 p-4 items-center justify-center">
+      <View className="absolute w-40 h-40 rounded-full bg-brainrot-purple/10 top-10 right-0" />
+      <View className="absolute w-32 h-32 rounded-full bg-brainrot-pink/10 bottom-10 left-0" />
+      
+      <Text className="text-2xl font-bold text-brainrot-pink mb-4">Your Favorites</Text>
+      <Text className="text-base text-white text-center">Coming soon: Your saved favorite words</Text>
     </View>
   );
 }

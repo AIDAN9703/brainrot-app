@@ -1,35 +1,55 @@
 # Brainrot Dictionary App
 
-A modern mobile app built with Expo and React Native that helps users stay up-to-date with the latest internet slang and brainrot terminology.
+A modern slang dictionary app built with React Native and Expo.
 
 ## Features
 
-### 1. Dictionary
-- Search for brainrot words and their definitions
-- Browse trending words
-- View detailed information about each word including examples, origin, and related terms
+- Search for slang words and terms
+- View definitions, examples, and usage
+- User profiles and favorites
+- Quizzes to test your knowledge
+- Trending words section
 
-### 2. Quizzes
-- Test your knowledge of the latest brainrot terminology
-- Multiple quiz categories with varying difficulty levels
-- Track your progress and earn badges
+## Algolia Search Integration
 
-### 3. Community
-- Share your thoughts and interact with other users
-- Post about new slang terms you've discovered
-- Like and comment on other users' posts
+This app uses Algolia for lightning-fast, typo-tolerant search capabilities through Firebase Extensions.
 
-### 4. Profile
-- View your activity history
-- Track your learning progress
-- Customize your account settings
+### Setup Instructions
+
+1. **Install the Firebase Algolia Extension**:
+   - Go to your Firebase console
+   - Navigate to Extensions
+   - Install the "Algolia Search" extension
+   - Follow the extension setup process
+
+2. **Configure Algolia Index Settings**:
+   - In your Algolia dashboard, go to your index
+   - Set up searchable attributes (usually "word", "definition", "example")
+   - Configure custom ranking (e.g., by popularity or date)
+   - Set up synonyms if needed
+
+3. **Add Algolia Credentials to Your App**:
+   - Update the `app.json` extra section with your Algolia app ID and search key
+   ```json
+   "extra": {
+     "EXPO_PUBLIC_ALGOLIA_APP_ID": "your-algolia-app-id",
+     "EXPO_PUBLIC_ALGOLIA_SEARCH_KEY": "your-algolia-search-key"
+   }
+   ```
+
+## Development
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the development server: `npm start`
 
 ## Tech Stack
 
-- **Expo**: For cross-platform mobile development
-- **React Native**: Core framework
-- **NativeWind**: Tailwind CSS for React Native
-- **Expo Router**: For navigation and routing
+- React Native
+- Expo Router
+- Firebase (Authentication, Firestore)
+- Algolia (Search)
+- NativeWind (TailwindCSS for React Native)
 
 ## Getting Started
 

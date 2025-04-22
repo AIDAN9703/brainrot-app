@@ -27,12 +27,12 @@
     },
 
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/brainrot-logo-text.png",
 
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
 
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/brainrot-logo-text.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -46,8 +46,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/brainrot-logo-text.png",
+        "backgroundColor": "#121212"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -55,6 +55,13 @@
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      },
+      "EXPO_PUBLIC_ALGOLIA_APP_ID": "Q6EH96IRPB",
+      "EXPO_PUBLIC_ALGOLIA_SEARCH_KEY": "29e903fc5c85d8d4937cb0b69fac73fb"
+    }
   }
 }

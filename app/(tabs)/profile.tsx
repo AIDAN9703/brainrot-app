@@ -323,7 +323,7 @@ export default function ProfileScreen() {
             </View>
             <View className="absolute bottom-1 left-1 bg-gray-800 rounded-full w-8 h-8 items-center justify-center border-2 border-white">
               <Ionicons name="camera" size={16} color="#ffffff" />
-            </View>
+          </View>
           </TouchableOpacity>
           <View className="ml-4 flex-1">
             <Text className="text-xl font-bold text-white">{user.displayName || 'User'}</Text>

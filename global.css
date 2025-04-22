@@ -4,17 +4,17 @@
 
 /* Base styles */
 :root {
-  --background-color: #084c8b;
+  --background-color: #121212;
 }
 
 /* Apply the background color to the root elements */
 body, html, #root, .app {
-  @apply bg-background;
+  @apply bg-brainrot-bg;
 }
 
 /* For React Native specifically */
 @layer base {
   .app-container {
-    @apply bg-background flex-1;
+    @apply bg-brainrot-bg flex-1;
   }
 }
